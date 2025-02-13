@@ -1,0 +1,126 @@
+Codes
+Retrieve the total number of orders placed.
+SELECT count (*) FROM pizzasales.orders;
+
+
+
+Calculate the total revenue generated from pizza sales.
+
+SELECT ROUND (SUM (order_details.quantity * pizzas.price), 2) AS Total_revenue FROM  order_details
+JOIN
+pizzas ON pizzas.pizza_id = order_details.pizza_id;
+
+
+
+Identify the highest-priced pizza.
+SELECT pizza_types.name, max(price) as highest_priced_pizza FROM pizzasales.pizzas 
+join pizza_types on pizza_types.pizza_type_id = pizzas.pizza_type_id;
+
+
+
+Identify the most common pizza size ordered.
+
+SELECT Pizzas.size, sum(order_details.quantity) FROM pizzasales.pizzas 
+join order_details ON pizzas.pizza_id = order_details.pizza_id 
+group by Pizzas.size order by sum(order_details.quantity) desc limit 1; 
+
+
+
+--- List the top 5 most ordered pizza types along with their quantities.
+
+select pizza_types.name, sum(order_details.quantity) from pizza_types 
+join 
+pizzas on pizza_types.pizza_type_id = pizzas.pizza_type_id
+join 
+order_details on order_details.pizza_id = pizzas.pizza_id 
+group by pizza_types.name order by sum(order_details.quantity) desc limit 5;
+
+
+
+
+Join the necessary tables to find the total quantity of each pizza category ordered.
+
+select pizza_types.category, sum(order_details.quantity) from pizza_types 
+join 
+pizzas on pizza_types.pizza_type_id = pizzas.pizza_type_id
+join 
+order_details on order_details.pizza_id = pizzas.pizza_id 
+group by pizza_types.category;
+
+
+
+Determine the distribution of orders by hour of the day.
+
+SELECT HOUR (order_time) AS Time, COUNT (orderid) AS order_count
+FROM pizzasales.orders
+GROUP BY HOUR (order_time) ORDER BY COUNT (orderid) DESC;
+
+
+
+-- Join relevant tables to find the category-wise distribution of pizzas.
+
+SELECT category, count(name) FROM pizzasales.pizza_types group by category;
+
+
+
+-Group the orders by date and calculate the average number of pizzas ordered per day.
+
+SELECT ROUND(AVG(ordersnum)) FROM
+    (SELECT order_date, SUM(order_details.quantity) AS ordersnum FROM pizzasales.orders
+    JOIN order_details ON orders.orderid = order_details.order_id
+    GROUP BY order_date ORDER BY ordersnum DESC) AS Order_quantity;
+
+
+
+Determine the top 3 most ordered pizza types based on revenue.
+
+SELECT pizza_types.name, ROUND(SUM(order_details.quantity * pizzas.price), 2) AS Total_revenue FROM  order_details
+JOIN
+pizzas ON pizzas.pizza_id = order_details.pizza_id
+join 
+pizza_types
+on pizza_types.pizza_type_id = pizzas.pizza_type_id
+group by pizza_types.name order by Total_revenue desc limit 3;
+
+
+
+Calculate the percentage contribution of each pizza type to total revenue.
+
+With CTE as (
+SELECT pizza_types.category as category ,ROUND(SUM(order_details.quantity * pizzas.price), 2) AS Total_revenue FROM  order_details
+JOIN
+pizzas ON pizzas.pizza_id = order_details.pizza_id
+join 
+pizza_types
+on pizza_types.pizza_type_id = pizzas.pizza_type_id
+group by pizza_types.category)
+select category, concat(round(total_revenue/(SELECT SUM(order_details.quantity * pizzas.price) FROM  order_details
+JOIN
+pizzas ON pizzas.pizza_id = order_details.pizza_id)*100, 2), "%") as percentage_contri from cte;
+
+
+
+Analyze the cumulative revenue generated over time.
+
+Select orderdate, round(sum(revenue) over (order by orderdate), 2) as Cum_Sum from 
+(SELECT orders.order_date as orderdate , SUM(order_details.quantity * pizzas.price) as revenue FROM  order_details
+JOIN
+pizzas ON pizzas.pizza_id = order_details.pizza_id
+join 
+orders
+on orders.orderid = order_details.order_id
+group by orders.order_date) as sales;
+
+
+Determine the top 3 most ordered pizza types based on revenue for each pizza category
+
+Select * from (select category, pizza_name, Total_revenue, rank() over (partition by category order by Total_revenue) as Ranking from
+(SELECT pizza_types.category as category, pizza_types.name as pizza_name ,ROUND(SUM(order_details.quantity * pizzas.price), 2) AS Total_revenue FROM  order_details
+JOIN
+pizzas ON pizzas.pizza_id = order_details.pizza_id
+join 
+pizza_types
+on pizza_types.pizza_type_id = pizzas.pizza_type_id
+group by pizza_types.category, pizza_types.name) as A) as B where ranking < 4;
+
+
